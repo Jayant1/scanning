@@ -16,6 +16,7 @@
 const constraints = {
   video: true
 };
+    var enumeratorPromise = navigator.mediaDevices.enumerateDevices();
 var promise = navigator.mediaDevices.getDisplayMedia(constraints);
 const video = document.querySelector('video');
 
