@@ -34,6 +34,7 @@ videoSelect.onchange = getStream;
     
 function gotDevices(deviceInfos) {
   for (let i = 0; i !== deviceInfos.length; ++i) {
+      alert("alert!");
       alert(deviceInfo.kind);
     const deviceInfo = deviceInfos[i];
     const option = document.createElement('option');
