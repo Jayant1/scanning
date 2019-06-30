@@ -11,9 +11,10 @@
     <input type="button" id="btn" value="Start/Stop the scanner" />
 
     <!-- Include the image-diff library -->
-    <script src="quagga.min.js"></script>
+    <!--<script src="quagga.min.js"></script>-->
 
     <script>
+      src="quagga.min.js"
       var _scannerIsRunning = false;
 
       function startScanner() {
@@ -24,8 +25,8 @@
               type: "LiveStream",
               target: document.querySelector("#scanner-container"),
               constraints: {
-                width: 480,
-                height: 320,
+                width: 100%,
+                height: 50%,
                 facingMode: "environment"
               }
             },
