@@ -1,87 +1,140 @@
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>Document</title>
-</head>
-<body>
-<div class="scanner">
-    <h2>Barcode scanner:</h2>
-</div>
+  </head>
+  <body>
+    <!-- Div to show the scanner -->
+    <div id="scanner-container"></div>
+    <input type="button" id="btn" value="Start/Stop the scanner" />
 
-<video autoplay></video>
+    <!-- Include the image-diff library -->
+    <script src="quagga.min.js"></script>
 
-<script>
-const constraints = {
-  video: true
-};
-    var enumeratorPromise = navigator.mediaDevices.enumerateDevices();
-var promise = navigator.mediaDevices.getDisplayMedia(constraints);
-const video = document.querySelector('video');
+    <script>
+      var _scannerIsRunning = false;
 
-const videoElement = document.querySelector('video');
-const audioSelect = document.querySelector('select#audioSource');
-const videoSelect = document.querySelector('select#videoSource');
+      function startScanner() {
+        Quagga.init(
+          {
+            inputStream: {
+              name: "Live",
+              type: "LiveStream",
+              target: document.querySelector("#scanner-container"),
+              constraints: {
+                width: 480,
+                height: 320,
+                facingMode: "environment"
+              }
+            },
+            decoder: {
+              readers: [
+                "code_128_reader",
+                "ean_reader",
+                "ean_8_reader",
+                "code_39_reader",
+                "code_39_vin_reader",
+                "codabar_reader",
+                "upc_reader",
+                "upc_e_reader",
+                "i2of5_reader"
+              ],
+              debug: {
+                showCanvas: true,
+                showPatches: true,
+                showFoundPatches: true,
+                showSkeleton: true,
+                showLabels: true,
+                showPatchLabels: true,
+                showRemainingPatchLabels: true,
+                boxFromPatches: {
+                  showTransformed: true,
+                  showTransformedBox: true,
+                  showBB: true
+                }
+              }
+            }
+          },
+          function(err) {
+            if (err) {
+              console.log(err);
+              return;
+            }
 
-navigator.mediaDevices.enumerateDevices().then(gotDevices).then(getStream).catch(handleError);
-navigator.mediaDevices.enumerateDevices();
-    alert(deviceInfos.length);
-gotDevices();
-audioSelect.onchange = getStream;
-videoSelect.onchange = getStream;
+            console.log("Initialization finished. Ready to start");
+            Quagga.start();
 
-function gotDevices(deviceInfos) {
-  for (let i = 0; i !== deviceInfos.length; ++i) {
-      alert("ok");
-      alert(type(off deviceInfo.kind));
-      alert(deviceInfo.kind);
-    const deviceInfo = deviceInfos[i];
-    const option = document.createElement('option');
-    option.value = deviceInfo.deviceId;
-    if (deviceInfo.kind === 'audioinput') {
-      option.text = deviceInfo.label ||
-        'microphone ' + (audioSelect.length + 1);
-      audioSelect.appendChild(option);
-    } else if (deviceInfo.kind === 'videoinput') {
-      option.text = deviceInfo.label || 'camera ' +
-        (videoSelect.length + 1);
-      videoSelect.appendChild(option);
-    } else {
-      console.log('Found another kind of device: ', deviceInfo);
-    }
-  }
-}
+            // Set flag to is running
+            _scannerIsRunning = true;
+          }
+        );
 
-function getStream() {
-  if (window.stream) {
-    window.stream.getTracks().forEach(function(track) {
-      track.stop();
-    });
-  }
+        Quagga.onProcessed(function(result) {
+          var drawingCtx = Quagga.canvas.ctx.overlay,
+            drawingCanvas = Quagga.canvas.dom.overlay;
 
-  const constraints = {
-    audio: {
-      deviceId: {exact: audioSelect.value}
-    },
-    video: {
-      deviceId: {exact: videoSelect.value}
-    }
-  };
+          if (result) {
+            if (result.boxes) {
+              drawingCtx.clearRect(
+                0,
+                0,
+                parseInt(drawingCanvas.getAttribute("width")),
+                parseInt(drawingCanvas.getAttribute("height"))
+              );
+              result.boxes
+                .filter(function(box) {
+                  return box !== result.box;
+                })
+                .forEach(function(box) {
+                  Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, {
+                    color: "green",
+                    lineWidth: 2
+                  });
+                });
+            }
 
-  navigator.mediaDevices.getUserMedia(constraints).
-    then(gotStream).catch(handleError);
-}
+            if (result.box) {
+              Quagga.ImageDebug.drawPath(
+                result.box,
+                { x: 0, y: 1 },
+                drawingCtx,
+                { color: "#00F", lineWidth: 2 }
+              );
+            }
 
-function gotStream(stream) {
-  window.stream = stream; // make stream available to console
-  videoElement.srcObject = stream;
-}
+            if (result.codeResult && result.codeResult.code) {
+              Quagga.ImageDebug.drawPath(
+                result.line,
+                { x: "x", y: "y" },
+                drawingCtx,
+                { color: "red", lineWidth: 3 }
+              );
+            }
+          }
+        });
 
-function handleError(error) {
-  console.error('Error: ', error);
-}
-</script>
+        Quagga.onDetected(function(result) {
+          console.log(
+            "Barcode detected and processed : [" + result.codeResult.code + "]",
+            result
+          );
+        });
+      }
 
-</body>
+      // Start/stop scanner
+      document.getElementById("btn").addEventListener(
+        "click",
+        function() {
+          if (_scannerIsRunning) {
+            Quagga.stop();
+          } else {
+            startScanner();
+          }
+        },
+        false
+      );
+    </script>
+  </body>
 </html>
